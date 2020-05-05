@@ -42,6 +42,23 @@ exports.createPost = (req, res, next) => {
     });
 }; 
 
+exports.getPost = (req, res, next) => {
+  const postId = req.params.postId;
+  Post.findById(postId)
+    .then((post) => {
+      if (!post) {
+        const error = new Error("Could not find post.");
+        error.status = 404;
+        throw error;
+      }
+      res.status(200).json({ post: post });
+    })
+    .catch((err) => {
+      errorHandler(err);
+      next(err);
+    });
+};
+
 const errorHandler = (err) => {
   if (!err.statusCode) {
     err.statusCode = 500;
