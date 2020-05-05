@@ -20,12 +20,18 @@ exports.createPost = (req, res, next) => {
     error.statusCode = 422;
     throw error;
   }
+  if (!req.file) {
+    const error = new Error("No image provided.");
+    error.statusCode = 422;
+    throw error;
+  }
+  const imageUrl = req.file.path.replace("\\", "/");
   const title = req.body.title;
   const content = req.body.content;
   const post = new Post({
     title: title,
     content: content,
-    imageUrl: "images/dummy.jpg",
+    imageUrl: imageUrl,
     creator: { name: "Marija" },
   });
   post
@@ -40,7 +46,7 @@ exports.createPost = (req, res, next) => {
       errorHandler(err);
       next(err);
     });
-}; 
+};
 
 exports.getPost = (req, res, next) => {
   const postId = req.params.postId;
