@@ -14,9 +14,10 @@ exports.getPosts = (req, res, next) => {
     .countDocuments()
     .then((count) => {
       totalItems = count;
-      return Post.find()
+      return Post.find({})
         .skip((currentPage - 1) * perPage)
-        .limit(perPage);
+        .limit(perPage)
+        .populate("creator");
     })
     .then((posts) => {
       res.status(200).json({
@@ -47,7 +48,7 @@ exports.createPost = (req, res, next) => {
   const title = req.body.title;
   const content = req.body.content;
   let creator;
-  const post = new Post({
+  let post = new Post({
     title: title,
     content: content,
     imageUrl: imageUrl,
@@ -56,6 +57,7 @@ exports.createPost = (req, res, next) => {
   post
     .save()
     .then((result) => {
+      post = result;
       return User.findById(req.userId);
     })
     .then((user) => {
@@ -63,10 +65,15 @@ exports.createPost = (req, res, next) => {
       user.posts.push(post);
       return user.save();
     })
-    .then(result => {
+    .then((result) => {
       res.status(201).json({
-        post: post,
-        creator: { _id: creator._id, name: creator.name }
+        post: {
+          title: post.title,
+          content: post.content,
+          imageUrl: post.imageUrl,
+          createdAt: post.createdAt,
+          creator: creator,
+        },
       });
     })
     .catch((err) => {
@@ -119,7 +126,7 @@ exports.updatePost = (req, res, next) => {
         throw error;
       }
       if (post.creator.toString() !== req.userId) {
-        const error = new Error('Not authorized!');
+        const error = new Error("Not authorized!");
         error.statusCode = 403;
         throw error;
       }
@@ -150,7 +157,7 @@ exports.deletePost = (req, res, next) => {
         throw error;
       }
       if (post.creator.toString() !== req.userId) {
-        const error = new Error('Not authorized!');
+        const error = new Error("Not authorized!");
         error.statusCode = 403;
         throw error;
       }
@@ -158,15 +165,15 @@ exports.deletePost = (req, res, next) => {
       clearImage(post.imageUrl);
       return Post.findByIdAndRemove(postId);
     })
-    .then(result => {
+    .then((result) => {
       return User.findById(req.userId);
     })
-    .then(user => {
+    .then((user) => {
       user.posts.pull(postId);
       return user.save();
     })
-    .then(result => {
-      res.status(200).json({ message: 'Deleted post.' });
+    .then((result) => {
+      res.status(200).json({ message: "Deleted post." });
     })
     .catch((err) => {
       errorHandler(err);
